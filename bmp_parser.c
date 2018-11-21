@@ -3,92 +3,95 @@
 /*                                                        :::      ::::::::   */
 /*   bmp_parser.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: thbernar <marvin@42.fr>                    +#+  +:+       +#+        */
+/*   By: maxisimo <maxisimo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/26 15:11:51 by thbernar          #+#    #+#             */
-/*   Updated: 2018/10/26 16:49:24 by thbernar         ###   ########.fr       */
+/*   Updated: 2018/11/13 13:42:35 by maxisimo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "bmp_parser.h"
 
-typedef struct s_bmp
+static void bmp_readfile(t_bmp *bmp, char *fname)
 {
-	int		width;
-	int		height;
-	int		data_offset;
-	int		*data;
-}		t_bmp;
-
-static void get_pixel_color(t_bmp *img, int x, int y)
-{
-	int os;
-
-	os = x + y * img->width;
-	printf("(%d, %d, %d)", img->data[0 + os], img->data[1 + os], img->data[2 + os]);
-}
-static void get_data_from_file(t_bmp *img, FILE *file)
-{
-	int c;
+	int fd;
 	int i;
+	int j;
+	int bytes_read = 1;
+	//int tmp;
+	unsigned char c;
 
 	i = 0;
-	while ((c = getc(file)) != EOF && i < 10)
+	j = 0;
+	if (((fd = open(fname, O_RDONLY)) < 0))
 	{
+		ft_putstr("Fatal error : invalid file.");
+		exit(-1);
+	}
+	while (bytes_read != 0)
+	{
+		bytes_read = read(fd, &c, 1);
+		if (i >= 18 && i <= 21)
+		{
+			if (i == 18)
+				bmp->width = c;
+			if (i == 19)
+				bmp->width += c << 8;
+			if (i == 20)
+				bmp->width += c << 16;
+			if (i == 21)
+				bmp->width += c << 24;
+		}
+		if (i >= 22 && i <= 25)
+		{
+			if (i == 22)
+				bmp->height = c;
+			if (i == 23)
+				bmp->height += c << 8;
+			if (i == 24)
+				bmp->height += c << 16;
+			if (i == 25)
+				bmp->height += c << 24;
+		}
+		if (i == 54)
+			bmp->data = (int*)malloc(sizeof(int) * bmp->width * bmp->height * 3);
+		if (i >= 54)
+		{
+			if (i % 3 == 0)
+				bmp->data[j + 2] = c;
+			if (i % 3 == 1)
+				bmp->data[j] = c;
+			if (i % 3 == 2)
+				bmp->data[j - 2] = c;
+			j++;
+		}
 		i++;
 	}
-	img->data_offset = c;
-	i++;
-	while ((c = getc(file)) != EOF && i < 18)
-	{
-		i++;
-	}
-	img->width = c;
-	i++;
-	while ((c = getc(file)) != EOF && i < 22)
-	{
-		i++;
-	}
-	img->height = c;
-	i++;
-	while ((c = getc(file)) != EOF && i < img->data_offset - 1)
-	{
-		i++;
-	}
-	img->data = (int*)malloc(sizeof(int) * img->width * img->height * 3);
-	i = 0;
-	while ((c = getc(file)) != EOF)
-	{
-		if (i % 3 == 0)
-			img->data[i + 2] = c;
-		if (i % 3 == 1)
-			img->data[i] = c;
-		if (i % 3 == 2)
-			img->data[i - 2] = c;
-		i++;
-	}
+	bmp->fsize = i;
 }
 
-static void load_bmp(t_bmp *img, char *filename)
+t_color		get_pixel_color(t_bmp *img, int x, int y)
 {
-	FILE 	*file;
+	int		os;
+	t_color	color;
 
-	file = fopen(filename, "r");
-	if (file) {
-		get_data_from_file(img, file);
-		fclose(file);
-	}
+	os = (x + y * img->width) * 3;
+	color.r = img->data[0 + os];
+	color.g = img->data[1 + os];
+	color.b = img->data[2 + os];
+	return (color);
 }
 
 int main(int ac, char **av)
 {
-	t_bmp texture;
-	load_bmp(&texture, av[1]);
-	get_pixel_color(&texture, 0, 0);
-	printf("-------------\n");
-	printf("width = %d\n", texture.width);
-	printf("height = %d\n", texture.height);
-	printf("data_offset = %d\n", texture.data_offset);
+	t_bmp bmp;
+	t_color clr;
+
+	(void)ac;
+	//load_bmp(&bmp, av[1]);
+	bmp_readfile(&bmp, av[1]);
+	clr = get_pixel_color(&bmp, 0, 0);
+	printf("(%d, %d)\n", bmp.width, bmp.height);
+	printf("%d\n", clr.g);
 	return (0);
 }
