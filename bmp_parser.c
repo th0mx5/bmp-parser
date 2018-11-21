@@ -18,7 +18,6 @@ static void bmp_readfile(t_bmp *bmp, char *fname)
 	int i;
 	int j;
 	int bytes_read = 1;
-	//int tmp;
 	unsigned char c;
 
 	i = 0;
